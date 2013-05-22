@@ -8,33 +8,42 @@ pygtk.require('2.0')
 import gtk
 
 class CellRendererToggle(gtk.CellRendererToggle):
-	def __init__(self, column, tree_view, model_toggle_index, model_inconsistency_index):
+	def __init__(self, column, view, model_toggle_index, model_inconsistency_index = None, expand = False):
 		gtk.CellRendererToggle.__init__(self)
 
 		self._model_toggle_index = model_toggle_index
 		self._model_inconsistency_index = model_inconsistency_index
-		column.pack_start(self, True)
-		self.connect("toggled", self._on_toggle, tree_view)
-		column.set_cell_data_func(self, self._update_cell)
+		column.pack_start(self, expand)
+		self.connect("toggled", self._on_toggle, view)
+
+		if model_inconsistency_index is not None:
+			column.set_cell_data_func(self, self._update_cell)
+		else:
+			column.add_attribute(self, "active", model_toggle_index)
 
 	def _update_cell(self, column, cell, model, iter):
 		cell.set_property("inconsistent", model[iter][self._model_inconsistency_index])
 		cell.set_property("active", model[iter][self._model_toggle_index])
 
-	def _on_toggle(self, cell, path, tree_view):
-		model = tree_view.get_model()
+	def _on_toggle(self, cell, path, view):
+		model = view.get_model()
 
 		if path is not None and model is not None:
 			iter = model.get_iter(path)
 			model[iter][self._model_toggle_index] = not model[iter][self._model_toggle_index]
-			model[iter][self._model_inconsistency_index] = False
+
+			if self._model_inconsistency_index is not None:
+				model[iter][self._model_inconsistency_index] = False
+				
 			self._toggle_children(model, model.iter_children(iter), model[iter][self._model_toggle_index])
 			self._toggle_parent(model, model.iter_parent(iter), model[iter][self._model_toggle_index])
 
 	def _toggle_children(self, model, iter, toggled):
 		while iter is not None:
 			model[iter][self._model_toggle_index] = toggled
-			model[iter][self._model_inconsistency_index] = False
+
+			if self._model_inconsistency_index is not None:
+				model[iter][self._model_inconsistency_index] = False
 
 			if model.iter_has_child(iter):
 				self._toggle_children(model, model.iter_children(iter), toggled)
@@ -48,14 +57,15 @@ class CellRendererToggle(gtk.CellRendererToggle):
 				child_iter = model.iter_children(iter)
 				has_child_not_toggled = False
 
-				while child_iter is not None:
-					if not model[child_iter][self._model_toggle_index] or model[child_iter][self._model_inconsistency_index]:
-						has_child_not_toggled = True
-						break;
-					
-					child_iter = model.iter_next(child_iter)
+				if self._model_inconsistency_index is not None:
+					while child_iter is not None:
+						if not model[child_iter][self._model_toggle_index] or model[child_iter][self._model_inconsistency_index]:
+							has_child_not_toggled = True
+							break;
 
-				model[iter][self._model_inconsistency_index] = has_child_not_toggled
+						child_iter = model.iter_next(child_iter)
+
+					model[iter][self._model_inconsistency_index] = has_child_not_toggled
 			else:
 				child_iter = model.iter_children(iter)
 				has_no_child_toggled = True
@@ -64,10 +74,12 @@ class CellRendererToggle(gtk.CellRendererToggle):
 					if model[child_iter][self._model_toggle_index]:
 						has_no_child_toggled = False
 						break;
-					
+
 					child_iter = model.iter_next(child_iter)
 
 				model[iter][self._model_toggle_index] = not has_no_child_toggled
-				model[iter][self._model_inconsistency_index] = model[iter][self._model_toggle_index] == True
+
+				if self._model_inconsistency_index is not None:
+					model[iter][self._model_inconsistency_index] = model[iter][self._model_toggle_index] == True
 
 			self._toggle_parent(model, model.iter_parent(iter), toggled)

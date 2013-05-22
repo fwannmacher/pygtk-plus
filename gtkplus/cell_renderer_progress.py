@@ -7,9 +7,9 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-class CellRendererText(gtk.CellRendererText):
+class CellRendererProgress(gtk.CellRendererProgress):
 	def __init__(self, column, model_index, expand = False):
-		gtk.CellRendererText.__init__(self)
+		gtk.CellRendererProgress.__init__(self)
 
 		column.pack_start(self, expand)
-		column.add_attribute(self, "text", model_index)
+		column.add_attribute(self, "value", model_index)
