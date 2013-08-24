@@ -10,14 +10,15 @@ import gtk
 class ListStoreBuilder:
 	@staticmethod
 	def build(array):
-		arguments = []
+		if len(array) > 0:
+			arguments = []
 
-		for value in array[0]:
-			arguments.append(type(value))
+			for value in array[0]:
+				arguments.append(type(value))
 		
-		store = gtk.ListStore(*arguments)
+			store = gtk.ListStore(*arguments)
 
-		for item in array:
-			store.append(item)
+			for item in array:
+				store.append(item)
 
-		return store
+			return store
